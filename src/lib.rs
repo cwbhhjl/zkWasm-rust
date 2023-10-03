@@ -147,6 +147,38 @@ impl Merkle {
         }
     }
 
+    pub fn get_without_check(&self, index: u64, data: &mut [u64]) -> u64 {
+        let mut hash = [0; 4];
+        unsafe {
+            merkle_address(index);
+
+            merkle_setroot(self.root[0]);
+            merkle_setroot(self.root[1]);
+            merkle_setroot(self.root[2]);
+            merkle_setroot(self.root[3]);
+
+            hash[0] = merkle_get();
+            hash[1] = merkle_get();
+            hash[2] = merkle_get();
+            hash[3] = merkle_get();
+
+            //enforce root does not change
+            merkle_getroot();
+            merkle_getroot();
+            merkle_getroot();
+            merkle_getroot();
+
+            let len = merkle_fetch_data();
+            if len>0 {
+                require(len <= data.len() as u64);
+                for i in 0..len {
+                    data[i as usize] = merkle_fetch_data();
+                }
+            }
+            len
+        }
+    }
+
 
     pub fn set(&mut self, index: u64, data: &[u64], pad: bool) {
         // place a dummy get for merkle proof convension
@@ -193,6 +225,79 @@ impl Merkle {
             self.root[2] = merkle_getroot();
             self.root[3] = merkle_getroot();
         }
+    }
+
+    pub fn set_custom<T, F>(
+        &mut self,
+        index: u64,
+        data: &T,
+        mut hasher: F,
+        encoder: *const fn(*const std::ffi::c_void, *const fn(u64)),
+    ) where
+        F: FnMut(&T) -> U256,
+    {
+        // place a dummy get for merkle proof convension
+        unsafe {
+            merkle_address(index);
+    
+            merkle_setroot(self.root[0]);
+            merkle_setroot(self.root[1]);
+            merkle_setroot(self.root[2]);
+            merkle_setroot(self.root[3]);
+    
+            merkle_get();
+            merkle_get();
+            merkle_get();
+            merkle_get();
+    
+            //enforce root does not change
+            merkle_getroot();
+            merkle_getroot();
+            merkle_getroot();
+            merkle_getroot();
+        }
+    
+        unsafe {
+            merkle_address(index);
+    
+            merkle_setroot(self.root[0]);
+            merkle_setroot(self.root[1]);
+            merkle_setroot(self.root[2]);
+            merkle_setroot(self.root[3]);
+    
+            let data_ptr = data as *const T as *const std::ffi::c_void;
+    
+            phantom_encode_data_to_merkle(data_ptr, encoder);
+    
+            let hash = hasher(data).0;
+            merkle_set(hash[0]);
+            merkle_set(hash[1]);
+            merkle_set(hash[2]);
+            merkle_set(hash[3]);
+    
+            self.root[0] = merkle_getroot();
+            self.root[1] = merkle_getroot();
+            self.root[2] = merkle_getroot();
+            self.root[3] = merkle_getroot();
+        }
+    }
+}
+
+#[wasm_bindgen::prelude::wasm_bindgen]
+#[inline(never)]
+pub fn phantom_encode_data_to_merkle(
+    data: *const std::ffi::c_void,
+    custom_func: *const fn(*const std::ffi::c_void, *const fn(u64)),
+) {
+    fn merkle_data(u: u64) {
+        unsafe {
+            merkle_put_data(u);
+        }
+    }
+
+    unsafe {
+        let custom_func = &*custom_func;
+        custom_func(data, merkle_data as *const fn(u64));
     }
 }
 
