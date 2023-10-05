@@ -232,7 +232,7 @@ impl Merkle {
         index: u64,
         data: &T,
         mut hasher: F,
-        encoder: *const fn(*const std::ffi::c_void, *const fn(u64)),
+        encoder: *const (*const std::ffi::c_void, *const u64),
     ) where
         F: FnMut(&T) -> U256,
     {
@@ -287,7 +287,7 @@ impl Merkle {
 #[inline(never)]
 pub fn phantom_encode_data_to_merkle(
     data: *const std::ffi::c_void,
-    custom_func: *const fn(*const std::ffi::c_void, *const fn(u64)),
+    custom_func: *const (*const std::ffi::c_void, *const u64),
 ) {
     fn merkle_data(u: u64) {
         unsafe {
@@ -296,8 +296,13 @@ pub fn phantom_encode_data_to_merkle(
     }
 
     unsafe {
-        let custom_func = &*custom_func;
-        custom_func(data, merkle_data as *const fn(u64));
+        let custom_func: fn(*const std::ffi::c_void, *const u64) =  
+            std::mem::transmute::<*const(*const std::ffi::c_void,
+                *const u64),
+                fn(position: *const std::ffi::c_void, output: *const u64),
+            >(custom_func);
+
+        custom_func(data, merkle_data as *const u64);
     }
 }
 
