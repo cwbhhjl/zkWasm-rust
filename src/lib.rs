@@ -147,8 +147,7 @@ impl Merkle {
         }
     }
 
-    pub fn get_without_check(&self, index: u64, data: &mut [u64]) -> u64 {
-        let mut hash = [0; 4];
+    pub fn get_without_check(&self, index: u64, data: &mut [u64], hash: &mut U256) -> u64 {
         unsafe {
             merkle_address(index);
 
@@ -157,10 +156,10 @@ impl Merkle {
             merkle_setroot(self.root[2]);
             merkle_setroot(self.root[3]);
 
-            hash[0] = merkle_get();
-            hash[1] = merkle_get();
-            hash[2] = merkle_get();
-            hash[3] = merkle_get();
+            hash.0[0] = merkle_get();
+            hash.0[1] = merkle_get();
+            hash.0[2] = merkle_get();
+            hash.0[3] = merkle_get();
 
             //enforce root does not change
             merkle_getroot();
