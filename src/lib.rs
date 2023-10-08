@@ -282,7 +282,7 @@ impl Merkle {
     }
 }
 
-#[wasm_bindgen::prelude::wasm_bindgen]
+#[export_name = "phantom_encode_data_to_merkle"]
 #[inline(never)]
 pub fn phantom_encode_data_to_merkle(
     data: *const std::ffi::c_void,
