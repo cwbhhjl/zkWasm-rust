@@ -226,6 +226,7 @@ impl Merkle {
         }
     }
 
+    #[export_name = "merkel_tree_set_custom"]
     pub fn set_custom<T, F>(
         &mut self,
         index: u64,
