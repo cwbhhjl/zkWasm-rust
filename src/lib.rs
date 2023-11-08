@@ -113,8 +113,7 @@ impl Merkle {
 
     pub fn set_simple_fn<'a, F>(&mut self, index: u64, mut data_fn: F)
     where
-        F: FnMut() -> &'a [u64; 4],
-        F: 'a,
+        F: FnMut() -> [u64; 4],
     {
         // place a dummy get for merkle proof convension
         unsafe {
