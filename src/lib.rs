@@ -111,6 +111,53 @@ impl Merkle {
         }
     }
 
+    pub fn set_simple_fn<'a, F>(&mut self, index: u64, mut data_fn: F)
+    where
+        F: FnMut() -> &'a [u64; 4],
+        F: 'a,
+    {
+        // place a dummy get for merkle proof convension
+        unsafe {
+            merkle_address(index);
+
+            merkle_setroot(self.root[0]);
+            merkle_setroot(self.root[1]);
+            merkle_setroot(self.root[2]);
+            merkle_setroot(self.root[3]);
+
+            merkle_get();
+            merkle_get();
+            merkle_get();
+            merkle_get();
+
+            //enforce root does not change
+            merkle_getroot();
+            merkle_getroot();
+            merkle_getroot();
+            merkle_getroot();
+        }
+
+        unsafe {
+            merkle_address(index);
+
+            merkle_setroot(self.root[0]);
+            merkle_setroot(self.root[1]);
+            merkle_setroot(self.root[2]);
+            merkle_setroot(self.root[3]);
+
+            let data = data_fn();
+            merkle_set(data[0]);
+            merkle_set(data[1]);
+            merkle_set(data[2]);
+            merkle_set(data[3]);
+
+            self.root[0] = merkle_getroot();
+            self.root[1] = merkle_getroot();
+            self.root[2] = merkle_getroot();
+            self.root[3] = merkle_getroot();
+        }
+    }
+
     pub fn get(&self, index: u64, data: &mut [u64], pad: bool) -> u64 {
         let mut hash = [0; 4];
         unsafe {
